@@ -1,0 +1,13 @@
+# Caddyfile for the docker-compose "tls" profile.
+# Caddy runs as a container and reaches Argos over the compose network, so it
+# proxies to the service name "argos" (not 127.0.0.1). Replace the domain with
+# your own; Caddy obtains a Let's Encrypt certificate automatically.
+
+argos.example.com {
+	reverse_proxy argos:8765
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+	}
+}

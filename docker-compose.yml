@@ -1,0 +1,45 @@
+# Argos self-host stack.
+#
+#   docker compose up -d               -> Argos only, published to 127.0.0.1:8765
+#                                         (connect over SSH tunnel or your own proxy)
+#   docker compose --profile tls up -d -> also runs Caddy for automatic HTTPS
+#                                         (edit deploy/Caddyfile.docker first)
+#
+# Set MC_TOKEN in a .env file next to this compose file (see .env.example):
+#   MC_TOKEN=$(openssl rand -hex 24)
+
+services:
+  argos:
+    build: .
+    image: argos-mcp:local
+    environment:
+      MC_TOKEN: ${MC_TOKEN:?set MC_TOKEN in .env (e.g. openssl rand -hex 24)}
+      MC_DB: /data/argos.db
+      MC_HOST: 0.0.0.0
+      MC_PORT: "8765"
+      MC_STALE_DAYS: ${MC_STALE_DAYS:-7}
+    volumes:
+      - argos-data:/data
+    ports:
+      # Host-local only. Remove or change if you front it with the tls profile.
+      - "127.0.0.1:8765:8765"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    profiles: ["tls"]
+    depends_on:
+      - argos
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile.docker:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  argos-data:
+  caddy-data:
+  caddy-config:

@@ -19,7 +19,7 @@ AUTH=()
 [ -n "$MC_TOKEN" ] && AUTH=(-H "Authorization: Bearer $MC_TOKEN")
 STATUS="$(curl -sf --max-time 3 "${AUTH[@]}" "$MC_URL/status/$ENCODED" 2>/dev/null)"
 
-# Sentinel must match status_impl's not-found message in server.py ("... not found ...").
+# Sentinel must match status_impl's not-found message in argos_mcp/server.py ("... not found ...").
 case "$STATUS" in *"not found"*) STATUS="";; esac
 
 if [ -n "$STATUS" ]; then

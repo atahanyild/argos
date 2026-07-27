@@ -5,9 +5,12 @@ A central brain that holds the status, tasks, and decisions of all projects.
 Local Claude Code sessions and a co-located MCP client on the host connect to
 the same server.
 
-Run:
-    MC_TOKEN=secret-token python3 server.py
-    MC_HOST=127.0.0.1 MC_PORT=8765 MC_DB=/opt/argos/argos.db python3 server.py
+Run (via the ``argos`` console script or ``python -m argos_mcp``):
+    argos serve             # HTTP transport (default)
+    argos stdio             # stdio transport (for SSH / local MCP clients)
+
+Configuration comes from the environment (see .env.example):
+    MC_TOKEN, MC_HOST, MC_PORT, MC_DB, MC_STALE_DAYS
 
 MCP endpoint:  http://HOST:8765/mcp   (Streamable HTTP, Bearer token)
 Plain HTTP:    GET /            -> mini HTML dashboard (?token=...)
@@ -27,7 +30,7 @@ from fastmcp.server.auth import StaticTokenVerifier
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
-DB_PATH = os.environ.get("MC_DB", os.path.join(os.path.dirname(__file__), "argos.db"))
+DB_PATH = os.environ.get("MC_DB", "argos.db")  # relative to the working directory
 TOKEN = os.environ.get("MC_TOKEN", "")  # if empty, auth is disabled (localhost only!)
 STALE_DAYS = int(os.environ.get("MC_STALE_DAYS", "7"))
 
@@ -462,15 +465,3 @@ async def dashboard(request: Request) -> HTMLResponse:
 <h2>Recent activity</h2><ul>{feed}</ul>
 </body></html>"""
     return HTMLResponse(page)
-
-
-# ---------------------------------------------------------------------- run
-
-if __name__ == "__main__":
-    init_db()
-    host = os.environ.get("MC_HOST", "127.0.0.1")
-    port = int(os.environ.get("MC_PORT", "8765"))
-    if not TOKEN:
-        print("WARNING: MC_TOKEN is empty — auth disabled. Use only behind localhost.")
-    print(f"Argos -> http://{host}:{port}/mcp  (db: {DB_PATH})")
-    mcp.run(transport="http", host=host, port=port)

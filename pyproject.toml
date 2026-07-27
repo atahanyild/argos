@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "argos-mcp"
+version = "0.1.0"
+description = "Argos Panoptes - central project memory MCP server for AI coding agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "atahanyild" }]
+keywords = ["mcp", "model-context-protocol", "ai-agents", "claude-code", "memory", "fastmcp"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+dependencies = ["fastmcp>=2.0"]
+
+[project.urls]
+Homepage = "https://github.com/atahanyild/argos"
+Repository = "https://github.com/atahanyild/argos"
+
+[project.scripts]
+argos = "argos_mcp.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["argos_mcp"]

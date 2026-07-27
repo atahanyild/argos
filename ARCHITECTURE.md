@@ -7,9 +7,11 @@ plain HTTP routes.
 
 ## Components
 
-- **FastMCP server (`server.py`)** - a single Python process built on
+- **FastMCP server (`argos_mcp/server.py`)** - a single Python process built on
   [FastMCP](https://github.com/jlowin/fastmcp). It registers 11 MCP tools and a
-  handful of plain HTTP routes, and it owns the SQLite connection lifecycle.
+  handful of plain HTTP routes, and it owns the SQLite connection lifecycle. The
+  `argos` CLI (`argos_mcp/cli.py`) runs it over HTTP (`argos serve`) or stdio
+  (`argos stdio`).
 - **SQLite database** - one file, opened in WAL mode, with an FTS5 virtual table
   for full-text search. This is the entire persistence layer; there is no
   separate database server.
@@ -127,7 +129,7 @@ the install directory), running as a dedicated non-root `argos` user.
   `GET /status/{name}`, and prints the central status so it is injected into the
   new session. It treats a "not found" response as "no record". This sentinel
   must stay in sync with the not-found message returned by `status_impl` in
-  `server.py`.
+  `argos_mcp/server.py`.
 - **Single writer for status** - a co-located second client is typically given
   read/append tools but not `project_status_set`, so the distilled status note
   keeps a single writer and is not overwritten by two clients at once.

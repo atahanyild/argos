@@ -9,7 +9,7 @@ User=argos
 WorkingDirectory=/opt/argos
 Environment=MC_DB=/opt/argos/argos.db
 EnvironmentFile=/opt/argos/.env
-ExecStart=/opt/argos/venv/bin/python /opt/argos/server.py
+ExecStart=/opt/argos/venv/bin/argos serve
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=yes
