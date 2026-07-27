@@ -127,9 +127,8 @@ the install directory), running as a dedicated non-root `argos` user.
 - **SessionStart hook** - `hooks/argos-session-start.sh` resolves the project
   name (`.mc-name` at the repo root, else the folder name), calls
   `GET /status/{name}`, and prints the central status so it is injected into the
-  new session. It treats a "not found" response as "no record". This sentinel
-  must stay in sync with the not-found message returned by `status_impl` in
-  `argos_mcp/server.py`.
+  new session. A missing project returns HTTP 404, so `curl -f` fails and the
+  hook treats it as "no record".
 - **Single writer for status** - a co-located second client is typically given
   read/append tools but not `project_status_set`, so the distilled status note
   keeps a single writer and is not overwritten by two clients at once.

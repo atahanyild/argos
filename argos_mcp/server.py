@@ -415,7 +415,12 @@ async def overview_route(request: Request) -> PlainTextResponse:
 async def status_route(request: Request) -> PlainTextResponse:
     if not _authorized(request):
         return PlainTextResponse("unauthorized", status_code=401)
-    return PlainTextResponse(status_impl(request.path_params["name"]))
+    name = request.path_params["name"]
+    with closing(db()) as conn:
+        exists = conn.execute("SELECT 1 FROM projects WHERE name=?", (name,)).fetchone()
+    # Signal a missing project with 404 so simple clients (curl -f) can rely on
+    # the status code instead of matching text in the body.
+    return PlainTextResponse(status_impl(name), status_code=200 if exists else 404)
 
 
 @mcp.custom_route("/", methods=["GET"])

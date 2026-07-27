@@ -17,10 +17,10 @@ ENCODED="$(python3 -c 'import urllib.parse, sys; print(urllib.parse.quote(sys.ar
 
 AUTH=()
 [ -n "$MC_TOKEN" ] && AUTH=(-H "Authorization: Bearer $MC_TOKEN")
-STATUS="$(curl -sf --max-time 3 "${AUTH[@]}" "$MC_URL/status/$ENCODED" 2>/dev/null)"
-
-# Sentinel must match status_impl's not-found message in argos_mcp/server.py ("... not found ...").
-case "$STATUS" in *"not found"*) STATUS="";; esac
+# A missing project returns 404, so `curl -f` fails and STATUS stays empty; we
+# then treat it as "no record". No body-substring matching (a status note may
+# legitimately contain any text, including the words "not found").
+STATUS="$(curl -sf --max-time 5 "${AUTH[@]}" "$MC_URL/status/$ENCODED" 2>/dev/null)"
 
 if [ -n "$STATUS" ]; then
   echo "[Argos] Central status for project '$PROJECT_NAME':"
