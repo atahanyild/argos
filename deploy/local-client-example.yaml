@@ -1,0 +1,24 @@
+# Example configuration block for a second MCP client co-located on the same
+# host as Argos, connecting over localhost (no TLS needed for the loopback hop).
+# Replace <MC_TOKEN> with the token from /opt/argos/.env - do not commit it here.
+#
+# Convention: project_status_set is intentionally omitted below so that the
+# status note has a single writer (e.g. Claude Code). Keep one writer for the
+# status note to avoid two clients overwriting each other.
+mcp_servers:
+  argos:
+    url: "http://127.0.0.1:8765/mcp"
+    headers:
+      Authorization: "Bearer <MC_TOKEN>"
+    tools:
+      include:
+        - projects_overview
+        - project_status_get
+        - task_list
+        - task_add
+        - task_update
+        - decision_log
+        - recent_activity
+        - search
+    prompts: false
+    resources: false

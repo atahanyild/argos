@@ -1,0 +1,14 @@
+# Example Caddyfile for Argos. Caddy terminates TLS (Let's Encrypt) and
+# forwards to the loopback-bound server. Replace argos.example.com with your
+# domain, then: sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+argos.example.com {
+	reverse_proxy 127.0.0.1:8765
+
+	# Recommended security response headers.
+	header {
+		# Enforce HTTPS for one year, including subdomains.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# Disable MIME-type sniffing.
+		X-Content-Type-Options "nosniff"
+	}
+}

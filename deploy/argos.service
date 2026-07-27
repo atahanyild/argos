@@ -1,0 +1,22 @@
+[Unit]
+Description=Argos MCP Server (central project memory)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=argos
+WorkingDirectory=/opt/argos
+Environment=MC_DB=/opt/argos/argos.db
+EnvironmentFile=/opt/argos/.env
+ExecStart=/opt/argos/venv/bin/python /opt/argos/server.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/argos
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

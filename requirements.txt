@@ -1,0 +1,4 @@
+# Requires Python 3.10+.
+# fastmcp is the only direct runtime dependency; it pulls in starlette and
+# uvicorn transitively (server.py imports starlette, but it ships with fastmcp).
+fastmcp>=2.0
