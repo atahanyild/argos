@@ -149,6 +149,40 @@ authentication, so you do not need to expose Argos publicly:
   `project_status_set` (for example, Claude Code) so the status note is not
   overwritten by two clients at once.
 
+## Onboarding your projects
+
+Once your MCP client is connected (see Client integration above), seed Argos with
+the first context of each project so future sessions start informed. Optionally
+create a `.mc-name` file at the repo root with a stable project name (otherwise
+the folder name is used), then run this prompt from inside the project:
+
+```text
+You have access to the Argos MCP tools (a central project memory). Onboard THIS
+project into Argos so that future sessions start with context.
+
+1. Resolve the project name from a `.mc-name` file at the repo root if present,
+   otherwise the repo folder name.
+2. Explore the repo enough to understand it: the README, the main manifest
+   (package.json, pyproject.toml, Cargo.toml, go.mod, ...), the directory
+   layout, and recent history (`git log --oneline -20`). Note the current branch
+   and any obvious TODOs or open work.
+3. Register it with `project_upsert` (name, a one-line description,
+   repo_path = the absolute repo path, source="claude-code").
+4. Write the initial status note with `project_status_set` (source="claude-code"):
+   distilled and factual - what the project is, its current state, what is in
+   progress, the next step, and known risks. Do not pad it.
+5. If there is clear open work, add up to ~5 tasks with `task_add`. If the repo
+   reflects important architectural or product decisions already made, record the
+   top few with `decision_log`. Always pass source="claude-code".
+6. Show me a short summary of what you registered and let me correct anything.
+
+Only record what you can verify from the repo - do not invent status. Prefer a
+few accurate entries over many speculative ones.
+```
+
+Repeat for each project you want tracked. From then on, the SessionStart hook
+injects that project's status automatically whenever you open it.
+
 ## License
 
 Licensed under the Apache License, Version 2.0. Copyright 2026 atahanyild.
