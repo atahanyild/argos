@@ -238,6 +238,26 @@ def job_enqueue_impl(project: str, title: str, scope: str, source: str = "") -> 
     return jid
 
 
+def job_get_impl(job_id: int) -> dict | None:
+    with closing(db()) as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def job_list_impl(state: str = "", project: str = "") -> list[dict]:
+    q = "SELECT id, project, title, state, pr_url, updated_at FROM jobs WHERE 1=1"
+    args: list = []
+    if state:
+        q += " AND state=?"
+        args.append(state)
+    if project:
+        q += " AND project=?"
+        args.append(project)
+    q += " ORDER BY updated_at DESC"
+    with closing(db()) as conn:
+        return [dict(r) for r in conn.execute(q, args).fetchall()]
+
+
 # -------------------------------------------------------------------- tools
 
 @mcp.tool
@@ -278,6 +298,20 @@ def job_enqueue(project: str, title: str, scope: str, source: str = "") -> str:
     describes what to do. The job starts in the 'queued' state for a runner to claim."""
     jid = job_enqueue_impl(project, title, scope, source)
     return f"Job #{jid} queued for {project}."
+
+
+@mcp.tool
+def job_get(job_id: int) -> str:
+    """Full JSON of a single job, or a not-found message."""
+    job = job_get_impl(job_id)
+    return json.dumps(job) if job else f"Job #{job_id} not found."
+
+
+@mcp.tool
+def job_list(state: str = "", project: str = "") -> str:
+    """JSON list of jobs (id, project, title, state, pr_url, updated_at), newest
+    first. Filter by state and/or project; empty means all."""
+    return json.dumps(job_list_impl(state, project))
 
 
 @mcp.tool
