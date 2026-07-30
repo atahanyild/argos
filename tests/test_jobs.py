@@ -68,6 +68,16 @@ def test_job_claim_none_when_empty(srvdb):
     assert srv.job_claim_impl("runner-1") is None
 
 
+def test_job_claim_correct_job_when_worker_holds_multiple_planning(srvdb):
+    a = srv.job_enqueue_impl("argos", "A", "S")
+    b = srv.job_enqueue_impl("argos", "B", "S")
+    first = srv.job_claim_impl("runner-1")     # claims A -> planning
+    assert first["id"] == a
+    srv.job_update_impl(a, worker="runner-1")  # bump A's updated_at while it stays 'planning'
+    second = srv.job_claim_impl("runner-1")    # must return B, not A
+    assert second["id"] == b and second["title"] == "B"
+
+
 def test_job_update_sets_state_and_spec(srvdb):
     jid = srv.job_enqueue_impl("argos", "T", "S")
     assert srv.job_update_impl(jid, state="awaiting_approval", spec="## Spec\ncriteria") is True
