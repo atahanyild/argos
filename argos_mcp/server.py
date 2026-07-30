@@ -608,6 +608,20 @@ async def status_route(request: Request) -> PlainTextResponse:
     return PlainTextResponse(status_impl(name), status_code=200 if exists else 404)
 
 
+def _jobs_html(jobs: list[dict]) -> str:
+    e = html.escape
+    if not jobs:
+        return "<p><i>No jobs</i></p>"
+    items = []
+    for j in jobs:
+        pr = (f" <a href=\"{e(j['pr_url'])}\">PR</a>" if j.get("pr_url") else "")
+        items.append(
+            f"<li><b>{e(j['title'])}</b> <small>({e(j['project'])})</small> "
+            f"<span class='state'>{e(j['state'])}</span>{pr}</li>"
+        )
+    return "<ul>" + "".join(items) + "</ul>"
+
+
 @mcp.custom_route("/", methods=["GET"])
 async def dashboard(request: Request) -> HTMLResponse:
     if not _authorized(request):
@@ -642,6 +656,7 @@ async def dashboard(request: Request) -> HTMLResponse:
         f"{e(a['action'])} {e(a['detail'] or '')}</li>"
         for a in acts
     ) or "<li><i>no activity</i></li>"
+    jobs_section = _jobs_html(job_list_impl())
     page = f"""<!doctype html><html><head><meta charset='utf-8'>
 <title>Argos</title>
 <style>
@@ -652,6 +667,7 @@ async def dashboard(request: Request) -> HTMLResponse:
 </style></head><body>
 <h1>Argos</h1>
 {''.join(rows) or '<p>No projects.</p>'}
+<h2>Jobs</h2>{jobs_section}
 <h2>Recent activity</h2><ul>{feed}</ul>
 </body></html>"""
     return HTMLResponse(page)
