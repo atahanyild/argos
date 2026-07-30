@@ -20,6 +20,7 @@ Plain HTTP:    GET /            -> mini HTML dashboard (?token=...)
 """
 
 import html
+import json
 import os
 import sqlite3
 import time
@@ -33,6 +34,10 @@ from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
 DB_PATH = os.environ.get("MC_DB", "argos.db")  # relative to the working directory
 TOKEN = os.environ.get("MC_TOKEN", "")  # if empty, auth is disabled (localhost only!)
 STALE_DAYS = int(os.environ.get("MC_STALE_DAYS", "7"))
+JOB_STATES = (
+    "queued", "planning", "clarifying", "awaiting_approval",
+    "executing", "needs_input", "pr_opened", "failed", "cancelled",
+)
 
 auth = (
     StaticTokenVerifier(tokens={TOKEN: {"client_id": "trusted", "scopes": []}})
@@ -221,6 +226,18 @@ def status_impl(name: str) -> str:
     return "\n".join(out)
 
 
+def job_enqueue_impl(project: str, title: str, scope: str, source: str = "") -> int:
+    with closing(db()) as conn, conn:
+        cur = conn.execute(
+            "INSERT INTO jobs(project, title, scope, state, source, created_at, updated_at) "
+            "VALUES(?,?,?,?,?,?,?)",
+            (project, title, scope, "queued", source, now(), now()),
+        )
+        jid = cur.lastrowid
+        log_activity(conn, project, source, "job_enqueue", f"#{jid} {title}")
+    return jid
+
+
 # -------------------------------------------------------------------- tools
 
 @mcp.tool
@@ -253,6 +270,14 @@ def project_status_get(name: str) -> str:
     """Full status of a project: status note (markdown), open tasks, last 5
     decisions, last 5 activity entries. Call when you start working on a project."""
     return status_impl(name)
+
+
+@mcp.tool
+def job_enqueue(project: str, title: str, scope: str, source: str = "") -> str:
+    """Queue a delegated coding job for a project. title is a short label; scope
+    describes what to do. The job starts in the 'queued' state for a runner to claim."""
+    jid = job_enqueue_impl(project, title, scope, source)
+    return f"Job #{jid} queued for {project}."
 
 
 @mcp.tool
