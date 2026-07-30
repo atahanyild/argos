@@ -244,6 +244,25 @@ def job_get_impl(job_id: int) -> dict | None:
     return dict(row) if row else None
 
 
+def job_claim_impl(worker: str) -> dict | None:
+    with closing(db()) as conn, conn:
+        cur = conn.execute(
+            "UPDATE jobs SET state='planning', worker=?, updated_at=? "
+            "WHERE id = (SELECT id FROM jobs WHERE state='queued' "
+            "            ORDER BY created_at LIMIT 1) AND state='queued'",
+            (worker, now()),
+        )
+        if cur.rowcount == 0:
+            return None
+        row = conn.execute(
+            "SELECT id FROM jobs WHERE worker=? AND state='planning' "
+            "ORDER BY updated_at DESC LIMIT 1", (worker,),
+        ).fetchone()
+        jid = row["id"]
+        log_activity(conn, "", worker, "job_claim", f"#{jid}")
+    return job_get_impl(jid)
+
+
 def job_list_impl(state: str = "", project: str = "") -> list[dict]:
     q = "SELECT id, project, title, state, pr_url, updated_at FROM jobs WHERE 1=1"
     args: list = []
@@ -312,6 +331,14 @@ def job_list(state: str = "", project: str = "") -> str:
     """JSON list of jobs (id, project, title, state, pr_url, updated_at), newest
     first. Filter by state and/or project; empty means all."""
     return json.dumps(job_list_impl(state, project))
+
+
+@mcp.tool
+def job_claim(worker: str) -> str:
+    """Atomically claim the oldest queued job for this worker, moving it to
+    'planning'. Returns the claimed job as JSON, or a message if none are queued."""
+    job = job_claim_impl(worker)
+    return json.dumps(job) if job else "No queued jobs."
 
 
 @mcp.tool
