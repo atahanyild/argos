@@ -44,3 +44,23 @@ def test_job_list_filters(srvdb):
     rows = srv.job_list_impl(project="argos")
     assert [r["id"] for r in rows] == [a]
     assert set(rows[0].keys()) == {"id", "project", "title", "state", "pr_url", "updated_at"}
+
+
+def test_job_claim_takes_oldest_and_sets_planning(srvdb):
+    first = srv.job_enqueue_impl("argos", "first", "S")
+    srv.job_enqueue_impl("argos", "second", "S")
+    claimed = srv.job_claim_impl("runner-1")
+    assert claimed["id"] == first
+    assert claimed["state"] == "planning"
+    assert claimed["worker"] == "runner-1"
+
+
+def test_job_claim_is_atomic_no_double_claim(srvdb):
+    srv.job_enqueue_impl("argos", "only", "S")
+    a = srv.job_claim_impl("runner-1")
+    b = srv.job_claim_impl("runner-2")
+    assert a is not None and b is None
+
+
+def test_job_claim_none_when_empty(srvdb):
+    assert srv.job_claim_impl("runner-1") is None
