@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 import argos_mcp.server as srv
 
 
@@ -64,3 +66,28 @@ def test_job_claim_is_atomic_no_double_claim(srvdb):
 
 def test_job_claim_none_when_empty(srvdb):
     assert srv.job_claim_impl("runner-1") is None
+
+
+def test_job_update_sets_state_and_spec(srvdb):
+    jid = srv.job_enqueue_impl("argos", "T", "S")
+    assert srv.job_update_impl(jid, state="awaiting_approval", spec="## Spec\ncriteria") is True
+    job = srv.job_get_impl(jid)
+    assert job["state"] == "awaiting_approval" and job["spec"] == "## Spec\ncriteria"
+
+
+def test_job_update_question_clear_sentinel(srvdb):
+    jid = srv.job_enqueue_impl("argos", "T", "S")
+    srv.job_update_impl(jid, state="clarifying", question="Which database?")
+    assert srv.job_get_impl(jid)["question"] == "Which database?"
+    srv.job_update_impl(jid, state="planning", question="-")
+    assert srv.job_get_impl(jid)["question"] == ""
+
+
+def test_job_update_rejects_unknown_state(srvdb):
+    jid = srv.job_enqueue_impl("argos", "T", "S")
+    with pytest.raises(ValueError):
+        srv.job_update_impl(jid, state="bogus")
+
+
+def test_job_update_missing_job_returns_false(srvdb):
+    assert srv.job_update_impl(999, state="executing") is False

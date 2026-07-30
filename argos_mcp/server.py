@@ -277,6 +277,37 @@ def job_list_impl(state: str = "", project: str = "") -> list[dict]:
         return [dict(r) for r in conn.execute(q, args).fetchall()]
 
 
+def job_update_impl(job_id: int, state: str = "", spec: str = "",
+                    question: str = "", pr_url: str = "", worker: str = "") -> bool:
+    if state and state not in JOB_STATES:
+        raise ValueError(f"unknown state: {state}")
+    sets = ["updated_at=?"]
+    args: list = [now()]
+    if state:
+        sets.append("state=?")
+        args.append(state)
+    if spec:
+        sets.append("spec=?")
+        args.append(spec)
+    if question:
+        sets.append("question=?")
+        args.append("" if question == "-" else question)
+    if pr_url:
+        sets.append("pr_url=?")
+        args.append(pr_url)
+    if worker:
+        sets.append("worker=?")
+        args.append(worker)
+    args.append(job_id)
+    with closing(db()) as conn, conn:
+        cur = conn.execute(f"UPDATE jobs SET {', '.join(sets)} WHERE id=?", args)
+        if cur.rowcount == 0:
+            return False
+        job = conn.execute("SELECT project FROM jobs WHERE id=?", (job_id,)).fetchone()
+        log_activity(conn, job["project"], worker, "job_update", f"#{job_id} {state or ''}".strip())
+    return True
+
+
 # -------------------------------------------------------------------- tools
 
 @mcp.tool
@@ -339,6 +370,15 @@ def job_claim(worker: str) -> str:
     'planning'. Returns the claimed job as JSON, or a message if none are queued."""
     job = job_claim_impl(worker)
     return json.dumps(job) if job else "No queued jobs."
+
+
+@mcp.tool
+def job_update(job_id: int, state: str = "", spec: str = "", question: str = "",
+               pr_url: str = "", worker: str = "") -> str:
+    """Update a job's fields (runner use). Only non-empty fields change. To clear
+    the pending question pass question='-'. state must be one of the valid job states."""
+    ok = job_update_impl(job_id, state, spec, question, pr_url, worker)
+    return f"Job #{job_id} updated." if ok else f"Job #{job_id} not found."
 
 
 @mcp.tool
