@@ -246,20 +246,16 @@ def job_get_impl(job_id: int) -> dict | None:
 
 def job_claim_impl(worker: str) -> dict | None:
     with closing(db()) as conn, conn:
-        cur = conn.execute(
-            "UPDATE jobs SET state='planning', worker=?, updated_at=? "
-            "WHERE id = (SELECT id FROM jobs WHERE state='queued' "
-            "            ORDER BY created_at LIMIT 1) AND state='queued'",
-            (worker, now()),
-        )
-        if cur.rowcount == 0:
-            return None
         row = conn.execute(
-            "SELECT id FROM jobs WHERE worker=? AND state='planning' "
-            "ORDER BY updated_at DESC LIMIT 1", (worker,),
+            "UPDATE jobs SET state='planning', worker=?, updated_at=? "
+            "WHERE id = (SELECT id FROM jobs WHERE state='queued' ORDER BY created_at LIMIT 1) "
+            "AND state='queued' RETURNING id, project",
+            (worker, now()),
         ).fetchone()
+        if row is None:
+            return None
         jid = row["id"]
-        log_activity(conn, "", worker, "job_claim", f"#{jid}")
+        log_activity(conn, row["project"], worker, "job_claim", f"#{jid}")
     return job_get_impl(jid)
 
 
@@ -614,7 +610,9 @@ def _jobs_html(jobs: list[dict]) -> str:
         return "<p><i>No jobs</i></p>"
     items = []
     for j in jobs:
-        pr = (f" <a href=\"{e(j['pr_url'])}\">PR</a>" if j.get("pr_url") else "")
+        pr = ""
+        if j.get("pr_url", "").startswith(("http://", "https://")):
+            pr = f" <a href=\"{e(j['pr_url'])}\">PR</a>"
         items.append(
             f"<li><b>{e(j['title'])}</b> <small>({e(j['project'])})</small> "
             f"<span class='state'>{e(j['state'])}</span>{pr}</li>"
@@ -664,6 +662,7 @@ async def dashboard(request: Request) -> HTMLResponse:
  .card{{background:#fff;border:1px solid #ddd;border-radius:8px;padding:1rem;margin-bottom:1rem}}
  pre{{white-space:pre-wrap;background:#f4f4f4;padding:.6rem;border-radius:6px}}
  h1{{margin-top:0}} small{{color:#666}}
+ .state{{background:#eef;padding:.1rem .4rem;border-radius:4px;font-size:.85em}}
 </style></head><body>
 <h1>Argos</h1>
 {''.join(rows) or '<p>No projects.</p>'}

@@ -18,3 +18,10 @@ def test_jobs_html_shows_pr_link(srvdb):
     srv.job_update_impl(jid, state="pr_opened", pr_url="https://github.com/x/y/pull/1")
     frag = srv._jobs_html(srv.job_list_impl())
     assert 'href="https://github.com/x/y/pull/1"' in frag
+
+
+def test_jobs_html_rejects_non_http_pr_url(srvdb):
+    jid = srv.job_enqueue_impl("argos", "T", "S")
+    srv.job_update_impl(jid, state="pr_opened", pr_url="javascript:alert(1)")
+    frag = srv._jobs_html(srv.job_list_impl())
+    assert "<a href" not in frag
