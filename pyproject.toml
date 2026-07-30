@@ -18,6 +18,9 @@ classifiers = [
 ]
 dependencies = ["fastmcp>=2.0"]
 
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
 [project.urls]
 Homepage = "https://github.com/atahanyild/argos"
 Repository = "https://github.com/atahanyild/argos"
