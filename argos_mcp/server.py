@@ -97,6 +97,22 @@ def init_db():
                 detail     TEXT DEFAULT '',
                 created_at REAL
             );
+            CREATE TABLE IF NOT EXISTS jobs(
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                project    TEXT NOT NULL,
+                title      TEXT NOT NULL,
+                scope      TEXT NOT NULL,
+                state      TEXT NOT NULL DEFAULT 'queued',
+                spec       TEXT DEFAULT '',
+                question   TEXT DEFAULT '',
+                answer_log TEXT DEFAULT '',
+                pr_url     TEXT DEFAULT '',
+                worker     TEXT DEFAULT '',
+                approved   INTEGER DEFAULT 0,
+                source     TEXT DEFAULT '',
+                created_at REAL,
+                updated_at REAL
+            );
             CREATE VIRTUAL TABLE IF NOT EXISTS search_idx USING fts5(
                 project, kind, ref_id, content
             );
