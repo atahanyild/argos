@@ -1,8 +1,10 @@
 .venv-test/
 venv/
+.venv/
 *.db
 .env
 .DS_Store
 .claude/
 __pycache__/
 *.pyc
+docs/superpowers/
