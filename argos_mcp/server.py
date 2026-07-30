@@ -308,6 +308,33 @@ def job_update_impl(job_id: int, state: str = "", spec: str = "",
     return True
 
 
+def job_approve_impl(job_id: int, source: str = "") -> bool:
+    with closing(db()) as conn, conn:
+        cur = conn.execute(
+            "UPDATE jobs SET approved=1, updated_at=? WHERE id=? AND state='awaiting_approval'",
+            (now(), job_id),
+        )
+        if cur.rowcount == 0:
+            return False
+        job = conn.execute("SELECT project FROM jobs WHERE id=?", (job_id,)).fetchone()
+        log_activity(conn, job["project"], source, "job_approve", f"#{job_id}")
+    return True
+
+
+def job_answer_impl(job_id: int, answer: str, source: str = "") -> bool:
+    with closing(db()) as conn, conn:
+        row = conn.execute("SELECT project, answer_log FROM jobs WHERE id=?", (job_id,)).fetchone()
+        if not row:
+            return False
+        appended = (row["answer_log"] + f"[{ts(now())}] {answer}\n")
+        conn.execute(
+            "UPDATE jobs SET answer_log=?, question='', updated_at=? WHERE id=?",
+            (appended, now(), job_id),
+        )
+        log_activity(conn, row["project"], source, "job_answer", f"#{job_id}")
+    return True
+
+
 # -------------------------------------------------------------------- tools
 
 @mcp.tool
@@ -379,6 +406,22 @@ def job_update(job_id: int, state: str = "", spec: str = "", question: str = "",
     the pending question pass question='-'. state must be one of the valid job states."""
     ok = job_update_impl(job_id, state, spec, question, pr_url, worker)
     return f"Job #{job_id} updated." if ok else f"Job #{job_id} not found."
+
+
+@mcp.tool
+def job_approve(job_id: int, source: str = "") -> str:
+    """Approve a job's spec (only valid while it is awaiting approval). The runner
+    then starts execution."""
+    ok = job_approve_impl(job_id, source)
+    return f"Job #{job_id} approved." if ok else f"Job #{job_id} is not awaiting approval."
+
+
+@mcp.tool
+def job_answer(job_id: int, answer: str, source: str = "") -> str:
+    """Answer a job's pending clarifying question or needs_input request. Clears
+    the pending question so the runner can resume."""
+    ok = job_answer_impl(job_id, answer, source)
+    return f"Answer recorded for job #{job_id}." if ok else f"Job #{job_id} not found."
 
 
 @mcp.tool
