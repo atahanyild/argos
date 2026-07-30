@@ -91,3 +91,19 @@ def test_job_update_rejects_unknown_state(srvdb):
 
 def test_job_update_missing_job_returns_false(srvdb):
     assert srv.job_update_impl(999, state="executing") is False
+
+
+def test_job_approve_only_when_awaiting(srvdb):
+    jid = srv.job_enqueue_impl("argos", "T", "S")
+    assert srv.job_approve_impl(jid) is False           # still queued
+    srv.job_update_impl(jid, state="awaiting_approval", spec="x")
+    assert srv.job_approve_impl(jid) is True
+    assert srv.job_get_impl(jid)["approved"] == 1
+
+
+def test_job_answer_appends_and_clears_question(srvdb):
+    jid = srv.job_enqueue_impl("argos", "T", "S")
+    srv.job_update_impl(jid, state="clarifying", question="Which db?")
+    assert srv.job_answer_impl(jid, "Postgres", source="hermes") is True
+    job = srv.job_get_impl(jid)
+    assert "Postgres" in job["answer_log"] and job["question"] == ""
